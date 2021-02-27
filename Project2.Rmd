@@ -17,6 +17,8 @@ library(caret)
 library(e1071)
 library(Metrics)
 library(ggplot2)
+library(readxl)
+library(xlsx)
 ###reading in data 
 CaseStudy2 <- read_csv("CaseStudy2-data.csv")
 ```
@@ -146,9 +148,9 @@ CM4
 trainIndices = sample(1:dim(CaseStudy2)[1],round(splitPerc * dim(CaseStudy2)[1]))
 train = CaseStudy2[trainIndices,]
 test = CaseStudy2[-trainIndices,]
-modelTB = naiveBayes(train[,c(2,5,7,8,10,11,12,14,15,16,18,20,21,22,25,26,27,28,29,30,31,32,33,34,35,36,38,39,40,41,42,43)],as.factor(train$Attrition),laplace = 3)
-table(predict(modelTB,test[c(2,5,7,8,10,11,12,14,15,16,18,20,21,22,25,26,27,28,29,30,31,32,33,34,35,36,38,39,40,41,42,43)]),as.factor(test$Attrition))
-CM4 = confusionMatrix(table(predict(modelTB,test[,c(2,5,7,8,10,11,12,14,15,16,18,20,21,22,25,26,27,28,29,30,31,32,33,34,35,36,38,39,40,41,42,43)]),as.factor(test$Attrition)))
+modelTB4 = naiveBayes(train[,c(2,5,7,8,12,14,15,16,18,20,21,22,25,26,27,28,29,30,31,32,33,34,35,36,38,39,40,41,42,43)],as.factor(train$Attrition),laplace = 3)
+table(predict(modelTB4,test[c(2,5,7,8,12,14,15,16,18,20,21,22,25,26,27,28,29,30,31,32,33,34,35,36,38,39,40,41,42,43)]),as.factor(test$Attrition))
+CM4 = confusionMatrix(table(predict(modelTB4,test[,c(2,5,7,8,12,14,15,16,18,20,21,22,25,26,27,28,29,30,31,32,33,34,35,36,38,39,40,41,42,43)]),as.factor(test$Attrition)))
 CM4
 
 
@@ -215,7 +217,7 @@ wilcox.test(YearsWithCurrManager ~ Attrition, data=CaseStudy2)
 #Attrition for Job Happiness
 ggplot(CaseStudy2, aes(JobHappiness, color=Attrition, fill=Attrition)) +
   geom_density() +
-  labs(title = "YearsWithCurrManager vs. Job Happiness")+
+  labs(title = "Attrition vs. Job Happiness")+
   scale_fill_brewer(palette="Set1")
 ggplot(CaseStudy2, aes(x=Attrition, JobHappiness, color=Attrition)) +
   geom_boxplot() +
@@ -255,7 +257,7 @@ chisq.test(CaseStudy2$OverTime, CaseStudy2$Attrition)
 ##Income per Travel
 ggplot(CaseStudy2, aes(TravelComp, color=Attrition, fill=Attrition)) +
   geom_density() +
-  labs(title = "YearsWithCurrManager vs. Travel Compensation")+
+  labs(title = "Attrition vs. Travel Compensation")+
   scale_fill_brewer(palette="Set1")
 ggplot(CaseStudy2, aes(x=Attrition, TravelComp, color=Attrition)) +
   geom_boxplot() +
@@ -266,7 +268,7 @@ wilcox.test(TravelComp ~ Attrition, data=CaseStudy2)
 ##Monthly Income vs Attrition
 ggplot(CaseStudy2, aes(MonthlyIncome, color=Attrition, fill=Attrition)) +
   geom_density() +
-  labs(title = "YearsWithCurrManager vs. Monthly Income")+
+  labs(title = "Attrition vs. Monthly Income")+
   scale_fill_brewer(palette="Set1")
 ggplot(CaseStudy2, aes(x=Attrition, MonthlyIncome, color=Attrition)) +
   geom_boxplot() +
@@ -306,3 +308,38 @@ ggplot(data=CaseStudy2,aes(x=TotalWorkingYears, y=MonthlyIncome,shape=JobRole, c
 ggplot(data=CaseStudy2,aes(x=TotalWorkingYears, y=MonthlyIncome,shape=as.factor(JobLevel), color=as.factor(JobLevel)))+
   geom_point()+geom_smooth(method=lm)
 ```
+
+#Data Predictions
+```{r predictions}
+
+CaseStudy2Att <- read_csv("CaseStudy2CompSet No Attrition.csv")
+CaseStudy2Att$AttritionN<-ifelse(CaseStudy2Att$Attrition =="Yes",1,0)
+CaseStudy2Att$GenderN<-ifelse(CaseStudy2Att$Gender =="Female",1,0)
+CaseStudy2Att$Over18N<-ifelse(CaseStudy2Att$Over18 =="Y",1,0)
+CaseStudy2Att$OverTimeN<-ifelse(CaseStudy2Att$OverTime =="Yes",1,0)
+CaseStudy2Att$BusinessTravelN<-ifelse(CaseStudy2Att$BusinessTravel =="Travel_Frequently",3,ifelse(CaseStudy2Att$BusinessTravel =="Travel_Rarely",2,1))
+CaseStudy2Att['JobHappiness']=CaseStudy2Att['JobInvolvement']+CaseStudy2Att['JobSatisfaction']
+CaseStudy2Att['TravelComp']=CaseStudy2Att['MonthlyIncome']/(CaseStudy2Att['DistanceFromHome'])
+CaseStudy2Att['TimeToLeave']=((CaseStudy2Att['TotalWorkingYears']-CaseStudy2Att['YearsAtCompany'])/CaseStudy2Att['NumCompaniesWorked'])
+
+
+CaseStudy2Att$Attrition<- predict(modelTB4,CaseStudy2Att[c(2,4,6,7,11,13,14,15,17,19,20,21,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41)] , type = "class")
+CaseStudy2AYAtt <- CaseStudy2Att %>% filter(Attrition == "Yes")
+CaseStudy2ANAtt <- CaseStudy2Att %>% filter(Attrition == "No")
+summary(CaseStudy2AYAtt)
+summary(CaseStudy2ANAtt)
+
+Case2Prediction<-CaseStudy2Att[c(1,43)]
+write.csv(Case2Prediction,"/Users/scottenglerth/Desktop/SMU MSDS/Term 1 Winter 2020/6371 Statistics Foundations/Project/AttrittionProject/Case2PredictionsEnglerth Attrition.csv", row.names = FALSE)
+
+
+CaseStudy2Sal <- read_excel("CaseStudy2CompSet No Salary.xlsx")
+CaseStudy2Sal$MonthyIncome <- predict(fit3,CaseStudy2Sal)
+summary(CaseStudy2Sal)
+Case2PredictionSal<-CaseStudy2Sal[c(1,36)]
+write.csv(Case2PredictionSal,"/Users/scottenglerth/Desktop/SMU MSDS/Term 1 Winter 2020/6371 Statistics Foundations/Project/AttrittionProject/Case2PredictionsEnglerth Salary.csv", row.names = FALSE)
+```
+
+#Youtube Link
+```{r Youtube Link}
+Placeholder
